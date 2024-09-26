@@ -1,84 +1,57 @@
 package com.pokerexample.util;
 
-import com.pokerexample.poker.CardValue;
-import com.pokerexample.poker.PokerHand;
+import com.pokerexample.poker.entity.Card;
+import com.pokerexample.poker.entity.CardSuit;
+import com.pokerexample.poker.entity.CardValue;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-
-import static com.pokerexample.poker.HandAnalyser.getSameCardValues;
 
 public class PokerUtil {
     private PokerUtil() {
     }
 
-    public static PokerHand removePair(PokerHand hand) {
-        return removeSameCardValuesByQuantity(hand, 2);
+    public static void removePair(List<Card> cards) {
+        removeSameCardValuesByQuantity(cards, 2);
     }
 
-    public static PokerHand removeSameCardValuesByQuantity(PokerHand hand, int quantity) {
-        Character pairChar = getSameCardValues(hand, quantity);
-        String cardsWithoutOnePair = removeCardByValue(hand.getCards().split(" "), pairChar);
-        return new PokerHand(cardsWithoutOnePair);
+    public static void removeSameCardValuesByQuantity(List<Card> cards, int quantity) {
+        CardValue pairValue = getSameCardValues(cards, quantity);
+        cards.removeIf(card -> card.getValue().equals(pairValue));
     }
 
-    public static String removeCardByValue(String[] cards, char cardValue) {
-        StringBuilder result = new StringBuilder();
+    public static boolean hasSameCardValues(List<Card> cards, int quantity) {
+        Map<CardValue, Long> cardValueCounts = cards.stream()
+                .collect(Collectors.groupingBy(Card::getValue, Collectors.counting()));
 
-        for (String card : cards) {
-            if (card.charAt(0) != cardValue) {
-                result.append(card).append(" ");
-            }
-        }
-
-        return result.toString().trim();
+        return cardValueCounts.containsValue((long) quantity);
     }
 
-    public static String removeOneCardByValue(String[] cards, char cardValue) {
-        StringBuilder result = new StringBuilder();
-        int deletedCardCount = 0;
-
-        for (String card : cards) {
-            if (card.charAt(0) == cardValue && deletedCardCount == 0) {
-                deletedCardCount++;
-                continue;
-            }
-            result.append(card).append(" ");
-        }
-
-        return result.toString().trim();
-    }
-
-    public static boolean hasSameCardValues(PokerHand hand, int quantity) {
-        for (Character ch : CardValue.getValues()) {
-            if (amountOfChars(hand, ch) == quantity) return true;
-        }
-        return false;
-    }
-
-    public static long amountOfChars(PokerHand hand, char ch) {
-        return hand.getCards().chars()
-                .filter(c -> c == ch)
+    public static long amountOfCardValues(List<Card> cards, CardValue value) {
+        return cards.stream()
+                .filter(card -> card.getValue() == value)
                 .count();
     }
 
-    public static List<Character> filteredChars(PokerHand hand, char ch) {
-        return hand.getCards().chars()
-                .filter(c -> c == ch)
-                .mapToObj(c -> (char) c)
-                .collect(Collectors.toList());
+    public static long amountOfCardSuits(List<Card> cards, CardSuit suit) {
+        return cards.stream()
+                .filter(card -> card.getSuit() == suit)
+                .count();
     }
 
-    public static boolean hasFiveValues(String cards,
-                                         String firstValue,
-                                         String secondValue,
-                                         String thirdValue,
-                                         String forthValue,
-                                         String fifthValue) {
-        return cards.contains(firstValue)
-                && cards.contains(secondValue)
-                && cards.contains(thirdValue)
-                && cards.contains(forthValue)
-                && cards.contains(fifthValue);
+    public static boolean hasValues(List<Card> cards, List<CardValue> valuesToCheck) {
+        List<CardValue> handValues = cards.stream()
+                .map(Card::getValue)
+                .collect(Collectors.toList());
+        return new HashSet<>(handValues).containsAll(valuesToCheck);
+    }
+
+    public static CardValue getSameCardValues(List<Card> cards, int quantity) {
+        for (CardValue cardValue : CardValue.values()) {
+            if (amountOfCardValues(cards, cardValue) == quantity) return cardValue;
+        }
+        throw new IllegalArgumentException("No cards found");
     }
 }

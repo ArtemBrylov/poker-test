@@ -1,93 +1,81 @@
 package com.pokerexample.poker;
 
-import java.util.Arrays;
-import java.util.Comparator;
+import com.pokerexample.poker.entity.Card;
+import com.pokerexample.poker.entity.CardSuit;
+import com.pokerexample.poker.entity.CardValue;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.pokerexample.util.PokerUtil.*;
 
 public class HandAnalyser {
-    private HandAnalyser() {
+    private final PokerHand hand;
+
+    public HandAnalyser(PokerHand hand) {
+        this.hand = hand;
     }
 
-    public static boolean hasRoyalFlush(PokerHand hand) {
-        return hasSameSuit(hand) && isHighestStraight(hand);
+    public boolean hasRoyalFlush() {
+        return hasSameSuit() && isHighestStraight();
     }
 
-    public static boolean hasStraightFlush(PokerHand hand) {
-        return hasSameSuit(hand) && hasStraight(hand);
+    public boolean hasStraightFlush() {
+        return hasSameSuit() && hasStraight();
     }
 
-    public static boolean hasFourOfAKind(PokerHand hand) {
-        return hasSameCardValues(hand, 4);
+    public boolean hasFourOfAKind() {
+        return hasSameCardValues(hand.getCards(), 4);
     }
 
-    public static boolean hasFullHouse(PokerHand hand) {
-        return hasThreeOfAKind(hand) && hasPair(hand);
+    public boolean hasFullHouse() {
+        return hasThreeOfAKind() && hasPair();
     }
 
-    public static boolean hasFlush(PokerHand hand) {
-        return hasSameSuit(hand);
+    public boolean hasFlush() {
+        return hasSameSuit();
     }
 
-    public static boolean hasStraight(PokerHand hand) {
-        return hasFiveValues(hand.getCards(), "2", "3", "4", "5", "6")
-                || hasFiveValues(hand.getCards(), "3", "4", "5", "6", "7")
-                || hasFiveValues(hand.getCards(), "4", "5", "6", "7", "8")
-                || hasFiveValues(hand.getCards(), "5", "6", "7", "8", "9")
-                || hasFiveValues(hand.getCards(), "6", "7", "8", "9", "T")
-                || hasFiveValues(hand.getCards(), "7", "8", "9", "T", "J")
-                || hasFiveValues(hand.getCards(), "8", "9", "T", "J", "Q")
-                || hasFiveValues(hand.getCards(), "9", "T", "J", "Q", "K")
-                || hasFiveValues(hand.getCards(), "T", "J", "Q", "K", "A")
-                || hasFiveValues(hand.getCards(), "A", "2", "3", "4", "5");
+    public boolean hasStraight() {
+        return hasValues(hand.getCards(), List.of(CardValue.TWO, CardValue.THREE, CardValue.FOUR, CardValue.FIVE, CardValue.SIX))
+                || hasValues(hand.getCards(), List.of(CardValue.THREE, CardValue.FOUR, CardValue.FIVE, CardValue.SIX, CardValue.SEVEN))
+                || hasValues(hand.getCards(), List.of(CardValue.FOUR, CardValue.FIVE, CardValue.SIX, CardValue.SEVEN, CardValue.EIGHT))
+                || hasValues(hand.getCards(), List.of(CardValue.FIVE, CardValue.SIX, CardValue.SEVEN, CardValue.EIGHT, CardValue.NINE))
+                || hasValues(hand.getCards(), List.of(CardValue.SIX, CardValue.SEVEN, CardValue.EIGHT, CardValue.NINE, CardValue.TEN))
+                || hasValues(hand.getCards(), List.of(CardValue.SEVEN, CardValue.EIGHT, CardValue.NINE, CardValue.TEN, CardValue.JACK))
+                || hasValues(hand.getCards(), List.of(CardValue.EIGHT, CardValue.NINE, CardValue.TEN, CardValue.JACK, CardValue.QUEEN))
+                || hasValues(hand.getCards(), List.of(CardValue.NINE, CardValue.TEN, CardValue.JACK, CardValue.QUEEN, CardValue.KING))
+                || hasValues(hand.getCards(), List.of(CardValue.TEN, CardValue.JACK, CardValue.QUEEN, CardValue.KING, CardValue.ACE))
+                || hasValues(hand.getCards(), List.of(CardValue.ACE, CardValue.TWO, CardValue.THREE, CardValue.FOUR, CardValue.FIVE));
     }
 
-    public static boolean hasThreeOfAKind(PokerHand hand) {
-        return hasSameCardValues(hand, 3);
+    public boolean hasThreeOfAKind() {
+        return hasSameCardValues(hand.getCards(), 3);
     }
 
-    public static boolean hasTwoPairs(PokerHand hand) {
-        if (hasPair(hand)) {
-            String cards = hand.getCards();
-            Character pairChar = getSameCardValues(hand, 2);
+    public boolean hasTwoPairs() {
+        Map<CardValue, Long> cardCountMap = hand.getCards().stream()
+                .collect(Collectors.groupingBy(Card::getValue, Collectors.counting()));
 
-            String cardsWithoutOnePair = cards.replace(pairChar, ' ');
-            return hasPair(new PokerHand(cardsWithoutOnePair));
-        }
-        return false;
+        long pairCount = cardCountMap.values().stream()
+                .filter(count -> count == 2)
+                .count();
+        return pairCount == 2;
     }
 
-    public static boolean hasPair(PokerHand hand) {
-        return hasSameCardValues(hand, 2);
+    public boolean hasPair() {
+        return hasSameCardValues(hand.getCards(), 2);
     }
 
-    public static String getHighCard(PokerHand hand) {
-        return getHighCard(hand.getCards());
+    private boolean isHighestStraight() {
+        return hasValues(hand.getCards(), List.of(CardValue.TEN, CardValue.JACK, CardValue.QUEEN, CardValue.KING, CardValue.ACE));
     }
 
-    public static String getHighCard(String hand) {
-        String[] cards = hand.split(" ");
-
-        return Arrays.stream(cards)
-                .max(Comparator.comparing(card -> CardValue.fromChar(card.charAt(0)).ordinal()))
-                .orElseThrow(() -> new IllegalArgumentException("No cards provided"));
-    }
-
-    public static Character getSameCardValues(PokerHand hand, int quantity) {
-        for (Character ch : CardValue.getValues()) {
-            if (amountOfChars(hand, ch) == quantity) return ch;
-        }
-        return '0';
-    }
-
-    private static boolean isHighestStraight(PokerHand hand) {
-        return hasFiveValues(hand.getCards(), "T", "J", "Q", "K", "A");
-    }
-
-    private static boolean hasSameSuit(PokerHand hand) {
-        return amountOfChars(hand, 'S') == 5
-                || amountOfChars(hand, 'H') == 5
-                || amountOfChars(hand, 'D') == 5
-                || amountOfChars(hand, 'C') == 5;
+    private boolean hasSameSuit() {
+        return amountOfCardSuits(hand.getCards(), CardSuit.SPADES) == 5
+                || amountOfCardSuits(hand.getCards(), CardSuit.HEARTS) == 5
+                || amountOfCardSuits(hand.getCards(), CardSuit.DIAMONDS) == 5
+                || amountOfCardSuits(hand.getCards(), CardSuit.CLUBS) == 5;
     }
 }
