@@ -1,54 +1,36 @@
 package com.pokerexample.poker;
 
-import java.util.Objects;
+import com.pokerexample.poker.entity.Card;
+import com.pokerexample.poker.entity.CardSuit;
+import com.pokerexample.poker.entity.CardValue;
 
-import static com.pokerexample.poker.HandValuesCalculator.*;
-import static com.pokerexample.poker.HandAnalyser.*;
-import static com.pokerexample.poker.HandValuesCalculator.calculateKicker;
-import static com.pokerexample.util.PokerUtil.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class PokerHand implements Comparable<PokerHand> {
-    private final String cards;
-    private int score = 0;
+    private final List<Card> cards;
 
-    public PokerHand(String fiveCards) {
-        this.cards = fiveCards;
-        score = calculateHandCombinations(this);
+    public PokerHand(String hand) {
+        this.cards = parseHand(hand);
     }
 
-    public String getCards() {
+    public List<Card> getCards() {
         return cards;
     }
 
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
+    private List<Card> parseHand(String hand) {
+        return Arrays.stream(hand.split(" "))
+                .map(card -> new Card(CardValue.fromChar(card.charAt(0)),
+                        CardSuit.fromChar(card.charAt(1))))
+                .collect(Collectors.toList());
     }
 
     @Override
     public int compareTo(PokerHand opponentHand) {
-        if (this.score == opponentHand.score) {
-            if (hasFourOfAKind(this)) {
-                calculateHighestFourOfAKind(this, opponentHand);
-            } else if (hasTwoPairs(this)) {
-                calculateHighestTwoPairs(this, opponentHand);
-            } else if (hasPair(this) || hasFullHouse(this)) {
-                return calculateKicker(removePair(this), removePair(opponentHand));
-            } else {
-                return calculateKicker(this, opponentHand);
-            }
-        }
-
-        if (this.score > opponentHand.getScore()) {
-            return HandResult.WIN.comparatorValue;
-        } else if (this.score < opponentHand.getScore()) {
-            return HandResult.LOSS.comparatorValue;
-        } else {
-            return HandResult.TIE.comparatorValue;
-        }
+        PokerHandComparator comparator = new PokerHandComparator();
+        return comparator.compare(this, opponentHand);
     }
 
     @Override
@@ -56,11 +38,18 @@ public class PokerHand implements Comparable<PokerHand> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         PokerHand pokerHand = (PokerHand) o;
-        return score == pokerHand.score && Objects.equals(cards, pokerHand.cards);
+        return Objects.equals(cards, pokerHand.cards);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cards, score);
+        return Objects.hashCode(cards);
+    }
+
+    @Override
+    public String toString() {
+        return "PokerHand{" +
+                "cards=" + cards +
+                '}';
     }
 }
